@@ -20,13 +20,21 @@ std::map<unsigned __int128, std::vector<unsigned __int128>> gragh;
 std::map<unsigned __int128, Board> boardMap;
 std::map<unsigned __int128, bool> visited;
 
-std::vector<long long> DEPTH = {3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5};
-
 void getInput();
-void genTree(int depth, int maxDepth, char piece, unsigned __int128 boardIndx);
-void searchTree(int depth, int maxDepth, unsigned __int128 boardId);
-std::pair<unsigned __int128, int> getBestPlay(unsigned __int128 boardId);
-std::tuple<int, int, int> getBestPiece(unsigned __int128 boardId);
+void genTree(short movesAhead, char piece, unsigned __int128 boardIndx);
+void minimax(short depth, unsigned __int128 boardId);
+unsigned __int128 getBestPlay();
+
+std::string printGragh(unsigned __int128 boardId, int depth)
+{
+    std::string str = std::string( 2*depth, ' ' ) + "(" + std::to_string(boardMap[boardId].score) + ", " + std::to_string(depth) + ")\n";
+    for(unsigned __int128 i : gragh[boardId])
+    {
+        str += printGragh(i, depth+1);
+    }
+    return str;
+}
+
 
 int main( void )
 {
@@ -34,29 +42,26 @@ int main( void )
 
     if(!B.won)
     {
-        int depth = DEPTH[16-B.pieces.size()];
-        B.print();
-        std::cout << "The Board ID is: " << B.id << std::endl;
-        std::cout << "Depth is: " << depth << std::endl;
-        std::cout << "Getting Gragh" << std::endl;
-        genTree(0, depth-1, toPlay, B.id);
+        std::cout << "Generating Tree" << std::endl;
+        genTree(6, toPlay, B.id);
+        std::cout << "Tree has " << boardMap.size() << " nodes." << std::endl;
 
-        std::cout << "Searching Gragh" << std::endl;
-        searchTree(0, depth-1, B.id);
+        std::cout << "Searching Tree" << std::endl;
+        minimax(0, B.id);
+        std::cout << B.score << std::endl;
 
-        std::cout << "Getting Best Board" << std::endl;
-        std::pair<unsigned __int128, char> play = getBestPlay(B.id);
-        boardMap[play.first].print();
+        unsigned __int128 best = getBestPlay();
+        boardMap[best].print();
+        std::cout << (int)boardMap[best].pieceToGive << std::endl;
 
-        if(!boardMap[play.first].won)
-        {
-            int pieceToGive = play.second;
-            std::cout << "Give piece: " << pieceToGive << std::endl;
-        }
-        else
-        {
-            std::cout << "Game Won!" << std::endl;
-        }
+        std::ofstream out;
+        out.open("../debug.out");
+        out << printGragh(B.id, 0);
+        out.close();
+
+    } else
+    {
+        std::cout << "Opponent Won!" << std::endl;
     }
     return 0;
 }
@@ -93,134 +98,93 @@ void getInput()
     boardMap[B.id] = B;
 }
 
-void genTree(int depth, int maxDepth, char toPlay,unsigned __int128 boardId)
+void genTree(short movesAhead, char toPlay, unsigned __int128 boardId)
 {
     Board board = boardMap[boardId];
-    if(!board.won)
+    if(movesAhead > 0)
     {
-        for(int place = 0; place < board.places.size(); ++place)
+        for(char place : board.places)
         {
-            Board newBoard = board.playPiece(board.places[place], toPlay);
-            // newBoard.print();
-            // std::cout << newBoard.won << std::endl;
-            gragh[boardId].push_back(newBoard.id); // May cause problem
-
-            if(!visited[newBoard.id])
+            for(char piece : board.pieces)
             {
-                boardMap[newBoard.id] = newBoard;
-                visited[newBoard.id] = true;
-
-                if(maxDepth-depth > 0)
+                if(piece != toPlay)
                 {
-                    for(int piece = 0; piece < newBoard.pieces.size(); ++piece)
+                    Board nBoard = board.play(toPlay, place, piece);
+                    if(!visited[nBoard.id])
                     {
-                        genTree(depth+1, maxDepth, newBoard.pieces[piece], newBoard.id);
+                        boardMap[nBoard.id] = nBoard;
+                        visited[nBoard.id] = true;
+                        gragh[boardId].push_back(nBoard.id);
 
-                        if(boardMap[gragh[boardId][gragh[boardId].size()-1]].won)
+                        if( nBoard.won || movesAhead == 1)
                         {
-                            boardMap[gragh[boardId][gragh[boardId].size()-1]].isLeaf = true;
-                            // return; // Posibly will break program
+                            boardMap[nBoard.id].isLeaf = true;
+                        } else
+                        {
+                            genTree(movesAhead-1, piece, nBoard.id);
                         }
                     }
-                } else
-                {
-                    boardMap[gragh[boardId][gragh[boardId].size()-1]].isLeaf = true;
                 }
             }
         }
+    } else
+    {
+        board.isLeaf = true;
     }
 }
 
-void searchTree(int depth, int maxDepth, unsigned __int128 boardId)
+void minimax(short depth, unsigned __int128 boardId)
 {
     bool isBotTurn = depth%2;
+    Board *board = &boardMap[boardId];
 
-    if(boardMap[boardId].won)
+    if((gragh[board->id].size() == 0 || board->isLeaf) && board->won)
     {
-        boardMap[boardId].score = (isBotTurn)?1:-1;
-    } else if(!boardMap[boardId].isLeaf)
+        board->score = isBotTurn?1:-1;
+    } else if((gragh[board->id].size() == 0 || board->isLeaf) && !board->won)
     {
-        int M = -2;
-        for(int i = 0; i < gragh[boardId].size(); ++i)
+        board->score = 0;
+    } else
+    {
+        int m = -2;
+        for(unsigned __int128 childId : gragh[boardId])
         {
-            searchTree(depth+1, maxDepth, gragh[boardId][i]);
+            minimax(depth+1, childId);
+            int childScore = boardMap[childId].score;
+
             if(
-                (M == -2) ||
-                (isBotTurn && boardMap[gragh[boardId][i]].score > M) ||
-                (!isBotTurn && boardMap[gragh[boardId][i]].score < M)
+                m == -2 ||
+                (isBotTurn && childScore < m) ||
+                (!isBotTurn && childScore > m)
             )
             {
-                M = boardMap[gragh[boardId][i]].score;
+                m = childScore;
             }
         }
-        boardMap[boardId].score = M;
+
+        if(m == -2)
+        {
+            board->print();
+            std::cout << gragh[board->id].size();
+        }
+
+        board->score = m;
     }
 }
 
-std::pair<unsigned __int128, int> getBestPlay(unsigned __int128 boardId)
+unsigned __int128 getBestPlay()
 {
     bool isFirst = true;
-    unsigned __int128 bestBoard;
-    int bestPiece;
-    int bestPieceScore;
-    int minSum;
-
-    for(int i = 0; i < gragh[boardId].size(); ++i)
+    unsigned __int128 max = 0;
+    for(unsigned __int128 child : gragh[B.id])
     {
-        boardMap[gragh[boardId][i]].print();
-        std::cout << boardMap[gragh[boardId][i]].score << std::endl;
-        // if(boardMap[gragh[boardId][i]].score == 1)
-        // {
-        //     return std::pair<unsigned __int128, int>(gragh[boardId][i], -1);
-        //
-        // } else
-        // {
-            std::tuple<int, int, int> bestPieceFound = getBestPiece(gragh[boardId][i]);
-            if(isFirst || std::get<1>(bestPieceFound) > bestPieceScore)
-            {
-                bestPiece = std::get<0>(bestPieceFound);
-                bestPieceScore = std::get<1>(bestPieceFound);
-                bestBoard = gragh[boardId][i];
-                minSum = std::get<2>(bestPieceFound);
-                isFirst = false;
-            } else if( std::get<1>(bestPieceFound) == bestPieceScore &&  std::get<2>(bestPieceFound) > minSum)
-            {
-                bestPiece = std::get<0>(bestPieceFound);
-                bestPieceScore = std::get<1>(bestPieceFound);
-                bestBoard = gragh[boardId][i];
-                minSum = std::get<2>(bestPieceFound);
-            }
-        // }
-    }
-
-    return std::pair<unsigned __int128, char>(bestBoard, bestPiece);
-}
-
-std::tuple<int, int, int> getBestPiece(unsigned __int128 boardId)
-{
-    std::map<int, short> pieceScores;
-    for(int i = 0; i < gragh[boardId].size(); ++i)
-    {
-        pieceScores[boardMap[gragh[boardId][i]].piecePlayed] += boardMap[gragh[boardId][i]].score;
-    }
-
-    bool first = true;
-    int maxKey = 0;
-    int maxValue = 0;
-    int sum = 0;
-    for( std::map<int, short>::iterator it = pieceScores.begin(); it != pieceScores.end(); ++it )
-    {
-        // std::cout << it->first << " " << it->second << std::endl;
-        if(first || it->second > maxValue)
+        if(isFirst || boardMap[child].score > boardMap[max].score)
         {
-            maxKey = it->first;
-            maxValue = it->second;
+            max = child;
+            isFirst = false;
         }
-
-        first = false;
-        sum += it->second;
-        std::cout << "    " << it->first << "  " << it->second << std::endl;
+        // std::cout << boardMap[child].score << std::endl;
+        // boardMap[child].print();
     }
-
-    return std::tuple<int, int, int>{maxKey, maxValue, sum};
+    return max;
 }

@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 a = "cd {}/bot;".format(os.getcwd())
-b = "g++ main.cpp; ./a.out; rm ./a.out;"
+b = "g++ main.cpp -O3; ./a.out; rm ./a.out;"
 
 os.system(a + b)
 

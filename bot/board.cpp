@@ -1,14 +1,12 @@
-
-int temp = 1;
-
+int temp = -1;
 class Board
 {
     public:
         std::array<char, 16> board;
         std::vector<char> pieces;
         std::vector<char> places;
-        char piecePlayed;
-        long long score=0;
+        char pieceToGive;
+        short score = -2;
         bool won;
         bool isLeaf = false;
         unsigned __int128 id;
@@ -25,7 +23,7 @@ class Board
             score = 0;
         }
 
-        Board playPiece(char i, char piece)
+        Board play(char piece, char i, char toGive)
         {
             std::array<char, 16> nBoard = board;
             std::vector<char> nPieces = pieces;
@@ -47,7 +45,7 @@ class Board
             }
 
             Board newBoard = Board(nBoard, nPieces, nPlaces);
-            newBoard.piecePlayed = piece;
+            newBoard.pieceToGive = toGive;
             return newBoard;
         }
 
@@ -85,6 +83,10 @@ class Board
             }
 
             std::cout << p << std::endl << pl << std::endl;
+            std::cout << "Giving: " << (int)pieceToGive << std::endl;
+            std::cout << "Won: " << won << std::endl;
+            std::cout << "Score: " << score << std::endl;
+            std::cout << "isLeaf: " << isLeaf << std::endl;
             std::cout << "____________________________________" << std::endl << std::endl;
         }
 
@@ -97,7 +99,7 @@ class Board
                 M = (ID > M) ? ID : M;
             }
 
-            return M;
+            return M*100 + pieceToGive+1;
         }
 
     private:
@@ -139,6 +141,8 @@ class Board
 
         unsigned __int128 calcID(std::array<int, 16> indecies)
         {
+            // temp++;
+            // return temp;
             unsigned __int128 ID = 0;
             for(int i = 0; i < 16; ++i)
             {
