@@ -49,25 +49,26 @@ class Board
             return newBoard;
         }
 
-        void print()
+        std::string toText()
         {
-            std::cout << std::endl << "____________________________________" << std::endl;
-            std::cout << "==============" << std::endl;
+            std::string txt = "\n____________________________________\n";
+            txt += "==============\n";
+
             for(char i = 0; i < 16; ++i)
             {
                 if((i) % 4 == 0)
                 {
-                    std::cout << "|";
+                    txt += "|";
                 }
 
-                std::cout << (board[i]<10?" ":"") << (board[i]==-1?"-":std::to_string(board[i])) << " ";
+                txt += (board[i]<10?" ":"") + (board[i]==-1?"-":std::to_string(board[i])) + " ";
 
                 if((i+1) % 4 == 0)
                 {
-                    std::cout << "|" << std::endl;
+                    txt += "|\n";
                 }
             }
-            std::cout << "==============" << std::endl;
+            txt += "==============\n";
 
             std::string p = "Pieces: ";
             std::string pl = "Places: ";
@@ -82,12 +83,14 @@ class Board
                 pl += std::to_string((int)places[i]) + " ";
             }
 
-            std::cout << p << std::endl << pl << std::endl;
-            std::cout << "Giving: " << (int)pieceToGive << std::endl;
-            std::cout << "Won: " << won << std::endl;
-            std::cout << "Score: " << score << std::endl;
-            std::cout << "isLeaf: " << isLeaf << std::endl;
-            std::cout << "____________________________________" << std::endl << std::endl;
+            txt += p + "\n" + pl + "\n";
+            txt += "Giving: " + std::to_string(pieceToGive) + "\n";
+            txt += "won: " + std::to_string(won) + "\n";
+            txt += "score: " + std::to_string(score) + "\n";
+            txt += "isLeaf: " + std::to_string(isLeaf) + "\n";
+            txt += "____________________________________\n\n";
+
+            return txt;
         }
 
         unsigned __int128 getId()
