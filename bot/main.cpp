@@ -47,6 +47,9 @@ int main()
     // Get the input
     getInput();
 
+
+    debugPrint("Original Board:" + B.toText());
+
     // If the bot has the first turn
     if(toPlay == -1)
         debugPrint("Giving: " + std::to_string(rand()%16) + "\n");
@@ -177,12 +180,9 @@ void minimax(short depth, unsigned __int128 boardId)
     bool isBotTurn = depth%2; // Helper variable for whether it is the bots turn or not
     Board *board = &boardMap[boardId]; // Pointer to board that score is being calculated for
 
-    if(board->isLeaf && board->won) // If the board is a leaf and is won
+    if(board->isLeaf) // If the board is a leaf
     {
-        board->score = isBotTurn?1:-1; // Give it 1 or -1 as score depending on whether it is the bots turn or not
-    } else if( board->isLeaf && !board->won) // If it is a leaf but not won
-    {
-        board->score = 0; // Set score to 0 (tie)
+        board->score = board->calcedScore*(isBotTurn?1:-1); // Give the board state its calculated score times -1 or 1 depending on the turn
     } else
     {
         int m = -2; // The max/min depending on the turn
@@ -208,6 +208,9 @@ void minimax(short depth, unsigned __int128 boardId)
         }
 
         // Set current boards score
+
+        // Adding many levels will make score > 100 / < -100
+
         board->score = m;
     }
 }
