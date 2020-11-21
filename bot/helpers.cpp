@@ -35,18 +35,3 @@ std::array<std::array<int, 16>, 8> symetries = {{
     {3, 7, 11, 15, 2, 6, 10, 14, 1, 5, 9, 13, 0, 4, 8, 12},
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 }};
-
-
-// Function that will output tect to console or file dending on setting
-void debugPrint(std::string txt)
-{
-    if(settings["file-debug"]==true)
-    {
-        std::ofstream out("../debug.out",   std::ios::app);
-        out << txt;
-        out.close();
-    } else
-    {
-        std::cout << txt;
-    }
-}

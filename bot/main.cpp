@@ -18,26 +18,16 @@ Json::Value settings; // Contains the settings from the json file in ./settings
 #include "board.cpp"
 
 Board B; // The current board
-char toPlay; // Th epiece that the opponent wants to be played
+char toPlay; // Th piece that the opponent wants to be played
 std::map<unsigned __int128, std::vector<unsigned __int128>> gragh; // An adjacency list for the tree/directed gragh
 std::map<unsigned __int128, Board> boardMap; // Map from id to the actual game state
 std::map<unsigned __int128, bool> visited; // Tells whether the id has already been visisted
 
 void getInput(); // Gets the input from play.in and settings/settings.json
+void writeOutput(int winner, Board b, char toPlay);
 void genTree(short movesAhead, char piece, unsigned __int128 boardIndx); // Generates the tree/directed gragh
 void minimax(short depth, unsigned __int128 boardId); // Performs a minimax
 unsigned __int128 getBestPlay(); // Gets the best play
-
-// TODO: Remove
-std::string printGragh(unsigned __int128 boardId, int depth)
-{
-    std::string str = std::string( 2*depth, ' ' ) + "(" + std::to_string(boardMap[boardId].score) + ", " + std::to_string(depth) + ", " + std::to_string(boardMap[boardId].pieceToGive)  + ")\n";
-    for(unsigned __int128 i : gragh[boardId])
-        str += printGragh(i, depth+1);
-
-    return str;
-}
-
 
 int main()
 {
@@ -47,52 +37,30 @@ int main()
     // Get the input
     getInput();
 
-
-    debugPrint("Original Board:" + B.toText());
-
-    // If the bot has the first turn
     if(toPlay == -1)
-        debugPrint("Giving: " + std::to_string(rand()%16) + "\n");
-
-    // If the game is not already won
+        writeOutput(0, B, rand()%16);
     else if(!B.won)
     {
-        debugPrint("Generating Tree\n");
-
         // Get the depth to search from the settings
         short depth = settings["depths"][(int)(16 - B.pieces.size())].asInt();
 
-        debugPrint("Depth Index: " + std::to_string((int)(16 - B.pieces.size())) + "\n");
-        debugPrint("Depth: " + std::to_string(depth) + "\n");
-
         // Generate the tree (Directed gragh)
         genTree(depth, toPlay, B.id);
-
-        debugPrint("Tree has " + std::to_string(boardMap.size()) + " nodes\n");
-
-        debugPrint("Searching Tree\n");
 
         // Perform a minimax to calculate each gamestate's score
         minimax(0, B.id);
 
         // Get the best next gamestate
         unsigned __int128 best = getBestPlay();
-        debugPrint(boardMap[best].toText());
 
-        // If the best gamestate is a winning state
         if(boardMap[best].won)
-            debugPrint("Bot Won\n");
-
-        // If the best is a lossing state
-        else if(boardMap[best].score == -1)
-            std::cout << "Human Won" << std::endl;
-
-        // Otherwise
+            writeOutput(1, boardMap[best], -1);
         else
-            debugPrint("Give Piece: " + std::to_string((int)boardMap[best].pieceToGive) + "\n");
-    } else // If human already won 
-        debugPrint("Human Won\n");
+            writeOutput(0, boardMap[best], boardMap[best].pieceToGive);
 
+    } else
+        writeOutput(-1, B, -1);
+    
     return 0;
 }
 
@@ -136,6 +104,24 @@ void getInput()
     // Read in the settings
     std::ifstream settings_json("../settings/settings.json");
     settings_json >> settings;
+}
+
+void writeOutput(int winner, Board b, char toPlay)
+{
+    std::string out = std::to_string(winner) + "\n" + std::to_string(toPlay);
+
+    for(int i = 0; i < 16; ++i)
+    {
+        if(i % 4 == 0)
+        {
+            out += "\n";
+        }
+
+        out += std::to_string((int)b.board[i]) + " ";
+    }
+
+    std::ofstream outputFile("../play.out");
+    outputFile << out + "\n";
 }
 
 void genTree(short movesAhead, char toPlay, unsigned __int128 boardId)

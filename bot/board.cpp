@@ -48,69 +48,33 @@ class Board
             return newBoard;
         }
 
-        std::string toText()
-        {
-            std::string txt = "\n____________________________________\n";
-            txt += "==============\n";
-
-            for(char i = 0; i < 16; ++i)
-            {
-                if((i) % 4 == 0)
-                {
-                    txt += "|";
-                }
-
-                txt += (board[i]<10?" ":"") + (board[i]==-1?"-":std::to_string(board[i])) + " ";
-
-                if((i+1) % 4 == 0)
-                {
-                    txt += "|\n";
-                }
-            }
-            txt += "==============\n";
-
-            std::string p = "Pieces: ";
-            std::string pl = "Places: ";
-
-            for(char i = 0; i < pieces.size(); ++i)
-            {
-                p += std::to_string(pieces[i]) + " ";
-            }
-
-            for(char i = 0; i < places.size(); ++i)
-            {
-                pl += std::to_string((int)places[i]) + " ";
-            }
-
-            txt += p + "\n" + pl + "\n";
-            txt += "Giving: " + std::to_string(pieceToGive) + "\n";
-            txt += "won: " + std::to_string(won) + "\n";
-            txt += "score: " + std::to_string(score) + "\n";
-            txt += "isLeaf: " + std::to_string(isLeaf) + "\n";
-            txt += "Debig Str: " + debugString + "\n";
-            txt += "____________________________________\n\n";
-
-            return txt;
-        }
-
+        // Gets the id of the current board
         unsigned __int128 getId()
         {
-            unsigned __int128  M = 0;
-            for(int i = 0; i < 8; ++i)
-            {
-                unsigned __int128 ID = calcID(symetries[i]);
+            unsigned __int128  M = 0; // Will hold the id with the largest value found
+
+            // For every symetry
+            for(std::array<int, 16> symetry : symetries)
+            {   
+                // Get the ID given that symetry
+                unsigned __int128 ID = calcID(symetry);
+                
+                // Replace the new max if the found ID is greater
                 M = (ID > M) ? ID : M;
             }
 
-            return M*100 + pieceToGive+1;
+            // Return the id with a extra info about the piece given
+            return M*100 + pieceToGive+1;   
         }
 
     private:
+        // Determines if there is a pattern in the three pieces given
         short getPattern(char a, char b, char c)
         {
-            if(a == -1 || b == -1 || c == -1 )
-                return -1;
+            if(a == -1 || b == -1 || c == -1 ) // If any of the pieces are not pieces (empty locations)
+                return -1; // Return -1 meaning no pattern
 
+            // Array of all patterns
             std::array<std::array<char, 8>, 4> patterns = {{
                 {0, 1, 2, 3, 4, 5, 6, 7},
                 {0, 1, 2, 3, 8, 9, 10, 11},
@@ -118,43 +82,53 @@ class Board
                 {0, 2, 4, 6, 8, 10, 12, 14}
             }};
 
+            // For every pattern
             for(char p = 0; p < 4; ++p)
             {
                 if (
                     std::binary_search(patterns[p].begin(), patterns[p].end(), a) &&
                     std::binary_search(patterns[p].begin(), patterns[p].end(), b) &&
                     std::binary_search(patterns[p].begin(), patterns[p].end(), c)
-                )
+                ) // If all pieces are in the same pattern
                 {
-                    return p;
+                    return p; // Return the patterns id
                 } else if(
                     !std::binary_search(patterns[p].begin(), patterns[p].end(), a) &&
                     !std::binary_search(patterns[p].begin(), patterns[p].end(), b) &&
                     !std::binary_search(patterns[p].begin(), patterns[p].end(), c)
-                )
+                ) // If all pieces are not in the same pattern
                 {
-                    return 4+p;
+                    return 4+p; // Return the patterns id
                 }
             }
 
+            // If at this point, return -1 meaning no pattern
             return -1;
         }
 
+        // Calculates the id given a list of indecies that correspond to some symetry
         unsigned __int128 calcID(std::array<int, 16> indecies)
         {
-            // temp++;
-            // return temp;
-            unsigned __int128 ID = 0;
+            unsigned __int128 ID = 0; // The ID itself
+
+            // For every indecie, add i to the ID
             for(int i = 0; i < 16; ++i)
             {
                 ID*=100;
                 ID += board[indecies[i]]+1;
             }
-            return ID;
+        
+            return ID; // Return the ID
         }
 
+        // Calculates the abolute value of the score of the state
         short calcScore()
         {
+            // Array of all sequences in the board:
+                // 0  1  2  3
+                // 4  5  6  7
+                // 8  9  10 11
+                // 12 13 14 15
             std::array<std::array<std::array<int, 3>, 10>, 4> sequences = {{
                 {{
                     {1, 2, 3},
@@ -203,33 +177,42 @@ class Board
                 }}
             }};
 
-            short score = 0;
+            short score = 0; // The score itself
+
+            // For every 10 sequences
             for(int i = 0; i < 10; ++i)
             {
+                // Array containing the patterns that were found
                 std::array<short, 8> patternsFound = {0, 0, 0, 0, 0, 0, 0, 0};
+
+                // For every 4 in that sequence
                 for(int j = 0; j < 4; ++j)
-                {
+                {   
+                    // Test if there is a pattern and get the id of that pattern
                     short p = getPattern(
                         board[sequences[j][i][0]],
                         board[sequences[j][i][1]],
                         board[sequences[j][i][2]]
                     );
 
+                    // If there is a pattern
                     if(p != -1)
                     {
-                        patternsFound[p] += 1;
+                        patternsFound[p] += 1; // Add 1 to the correct index
                     }
                 }  
 
+                // For every count of some pattern id
                 for(short count : patternsFound)
-                {
-                    if(count > 1)
+                {   
+                
+                    if(count > 1) // If is a pattern of 4 (winning state), add 100 to the score
                         score += 100;
-                    else
+                    else // Otherwise, just add the count (0 or 1)
                         score += count;
                 } 
             }
 
-            return score;
+            return score; // Return the score
         }
 };
